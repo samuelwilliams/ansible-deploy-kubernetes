@@ -1,0 +1,118 @@
+---
+
+- name: Install Kubernetes
+  hosts: kube_nodes
+  tasks:
+    - name: Add Kubernetes Yum repository
+      yum_repository:
+        name: Kubernetes
+        description: Kubernetes YUM repository
+        baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        enabled: yes
+        gpgcheck: yes
+        repo_gpgcheck: yes
+        gpgkey:
+          - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+          - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+    - name: Install Yum Utilities
+      yum:
+        name:
+          - yum-utils
+        state: latest
+
+    - name: Add Docker CE repository
+      shell:
+        cmd: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+    - name: Install Docker and Kubernetes
+      yum:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+    
+    - name: Add docker daemon file
+      copy:
+        src: daemon.json
+        dest: /etc/docker/daemon.json
+        mode: 644
+
+    - name: Enable the Docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Update hosts file
+      copy:
+        src: hosts
+        dest: /etc/hosts  
+
+    - name: Update IPTables Settings
+      copy:
+        src: k8s.conf
+        dest: /etc/sysctl.d/k8s.conf
+        mode: 644
+
+    - name: Load new system settings
+      ansible.builtin.shell:
+        cmd: sysctl --system
+
+    - name: Disable SELinux enforcement
+      ansible.posix.selinux:
+        state: disabled
+
+    - name: Disable SWAP
+      ansible.builtin.shell:
+        cmd: sed -i '/swap/d' /etc/fstab
+
+    - name: Turn off SWAP
+      ansible.builtin.shell:
+        cmd: swapoff -a
+
+- name: Configure master node firewall
+  hosts: kube_master
+  tasks:
+    - name: Open port 6443/TCP on master node
+      ansible.posix.firewalld:
+        port: 6443/tcp
+        permanent: yes
+        state: enabled
+
+    - name: Open ports 2379-2380/TCP on master node
+      ansible.posix.firewalld:
+        port: 2379-2380/tcp
+        permanent: yes
+        state: enabled
+
+    - name: Open ports 10250-10252/TCP on master node
+      ansible.posix.firewalld:
+        port: 10250-10252/tcp
+        permanent: yes
+        state: enabled
+
+    - name: Open port 10255/TCP on master node
+      ansible.posix.firewalld:
+        port: 10255/tcp
+        permanent: yes
+        state: enabled
+
+- name: Configure worker node firewall
+  hosts: kube_workers
+  tasks:
+    - name: Oepn port 10251/TCP on worker nodes
+      ansible.posix.firewalld:
+        port: 10251/tcp
+        permanent: yes
+        state: enabled
+
+    - name: Open port 10255/TCP on worker nodes
+      ansible.posix.firewalld:
+        port: 10255/tcp
+        permanent: yes
+        state: enabled
