@@ -34,6 +34,7 @@
           - kubelet
           - kubeadm
           - kubectl
+          - iproute-tc
         state: present
     
     - name: Add docker daemon file
