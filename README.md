@@ -10,4 +10,8 @@ Ansible Playbook: Deploy a Kubernetes cluster
    * `[kube_master]` - This will contain the Kubernetes master node(s).
 
 # Post deployment
-On the master node, run the command (as root) `kubeadm init`, from there, you _should_ be given the token for the worker nodes to join the cluster.
+On the master node, run the command (as root) `kubeadm init --pod-network-cidr=10.244.0.0/16`, from there, you _should_ be given the token for the worker nodes to join the cluster.
+
+To add a pod network (here I am using Flanel), run the command (as root) `kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml`.
+
+You can set your nodes to the worker node role using the command: `for i in {1..4}; do kubectl label node kube0$i node-role.kubernetes.io/worker=worker; done` 

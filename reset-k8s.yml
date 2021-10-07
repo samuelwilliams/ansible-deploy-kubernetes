@@ -1,0 +1,12 @@
+---
+
+- name: Reset Kubernetes
+  hosts: kube_nodes
+  tasks:
+    - name: kubeadmin reset
+      shell:
+        cmd: kubeadm reset -f
+    - name: Remove net.d directory
+      file:
+        state: absent
+        path: /etc/cni/net.d
